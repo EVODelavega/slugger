@@ -1,0 +1,24 @@
+{
+    "name": "evodelavega/slugger",
+    "version": "1.0.0",
+    "description": "Some data wrappers to enable 'slug-access' on PHP data containers like arrays and objects. Useful for NoSQL data",
+    "keywords": ["slug", "PHP", "Utility", "array", "Wrapper", "JSON"],
+    "license": "GPL-2.0+",
+    "authors": [
+        {
+            "name": "Elias Van Ootegem",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-0" : {
+            "Slugger" : "src"
+        }
+    },
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "require-dev": {
+    	"phpunit/phpunit": "4.5.*"
+    }
+}
