@@ -19,6 +19,11 @@ class SlugArrayTest extends PHPUnit_Framework_TestCase
                 }
             }
         }
+        if ($writable) {
+            $val = $obj->get('foo');
+            $obj->updateScalarValue('foo', 'new value');
+            $this->assertNotEquals($val, $obj->get('foo'));
+        }
         $this->setExpectedException('InvalidArgumentException');
         $obj->setName($badName);
     }
