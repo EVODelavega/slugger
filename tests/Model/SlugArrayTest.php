@@ -6,7 +6,7 @@ class SlugArrayTest extends PHPUnit_Framework_TestCase
     /**
      * @dataProvider constructorProvider
      */
-    public function testConstructorValid($name, $data, $writable)
+    public function testConstructorValid($name, $data, $writable, $badName)
     {
         $obj = new SlugArray($name, $data, $writable);
         foreach ($data as $k => $val) {
@@ -19,7 +19,8 @@ class SlugArrayTest extends PHPUnit_Framework_TestCase
                 }
             }
         }
-        
+        $this->setExpectedException('InvalidArgumentException');
+        $obj->setName($badName);
     }
 
     /**
@@ -39,16 +40,19 @@ class SlugArrayTest extends PHPUnit_Framework_TestCase
                 'name'	    => 'test',
                 'data'	    => $data,
                 'writable'	=> true,
+                'badName'	=> 123,
             ),
             array(
                 'name'	    => 'readOnly',
                 'data'	    => $data,
                 'writable'	=> false,
+                'badName'	=> new DateTime(),
             ),
             array(
                 'name'	    => 'keyName',
                 'data'	    => array('keyName' => $data),
                 'writable'	=> true,
+                'badName'	=> 'name.with.separators',
             )
         );
     }

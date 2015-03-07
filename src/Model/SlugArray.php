@@ -83,12 +83,8 @@ class SlugArray
         }
         //check keys
         $keys = array_keys($data);
-        if (count($keys) === 1) {
-            $name = $keys[0];
-            if ($name !== $this->name) {
-                $this->setName($name);
-            }
-            $data = $data[$name];
+        if (count($keys) === 1 && $keys[0] === $this->name) {
+            $data = $data[$this->name];
         }
         $this->data = $data;
         $this->hash = sha1(json_encode($data));
@@ -284,6 +280,12 @@ class SlugArray
                     __METHOD__,
                     is_object($name) ? get_class($name) : gettype($name)
                 )
+            );
+        }
+        $cleanName = str_replace('.', '', trim($name));
+        if ($cleanName !== $name) {
+            throw new \InvalidArgumentException(
+                'The name cannot contain whitespace chars, or separators (.)'
             );
         }
         $this->name = $name;
