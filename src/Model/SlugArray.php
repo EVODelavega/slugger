@@ -150,6 +150,121 @@ class SlugArray
     }
 
     /**
+     * Remove SCALAR at slug, this method can't remove TREE's, for safety
+     * The caller must show clear intent, knowing what is being removed
+     *
+     * @param string $slug
+     * @return $this
+     * @throws \RuntimeException
+     * @throws \LogicException
+     * @throws \BadMethodCallException
+     */
+    public function removeScalarValue($slug)
+    {
+        if ($this->writable === false) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Cannot remove %s from %s, object is locked',
+                    $slug,
+                    $this->name
+                )
+            );
+        }
+        $path = $this->expandSlug($slug);
+        $cleanSlug = implode('.', $path);
+        //get the name of the node we're updating
+        $key = array_pop($path);
+        try {
+            $data = &$this->getTreeReference(
+                $path,
+                $this->data
+            );
+        } catch (\RuntimeException $e) {
+            throw new \LogicException(
+                sprintf(
+                    'Invalid slug %s: %s',
+                    $slug,
+                    $e->getMessage()
+                ),
+                0,
+                $e
+            );
+        }
+        if (array_key_exists($key, $data) && !is_array($data[$key])) {
+            unset($data[$key]);
+            $this->cached[$cleanSlug] = $value;
+            $this->resetHash();
+            $this->cached[self::CACHE_HASH_KEY] = $this->hash;
+        } else {
+            throw new \BadMethodCallException(
+                sprintf(
+                    '%s only removes existing SCALAR values, %s does not exist, or is a TREE',
+                    __METHOD__,
+                    $slug
+                )
+            );
+        }
+        return $this;
+    }
+
+    /**
+     * Remove a tree from the data
+     *
+     * @param string $slug
+     * @return $this
+     * @throws \RuntimeException
+     * @throws \LogicException
+     * @throws \BadMethodCallException
+     */
+    public function removeTreeValue($slug)
+    {
+        if ($this->writable === false) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Cannot remove %s from %s, object is locked',
+                    $slug,
+                    $this->name
+                )
+            );
+        }
+        $path = $this->expandSlug($slug);
+        $cleanSlug = implode('.', $path);
+        //get the name of the node we're updating
+        $key = array_pop($path);
+        try {
+            $data = &$this->getTreeReference(
+                $path,
+                $this->data
+            );
+        } catch (\RuntimeException $e) {
+            throw new \LogicException(
+                sprintf(
+                    'Invalid slug %s: %s',
+                    $slug,
+                    $e->getMessage()
+                ),
+                0,
+                $e
+            );
+        }
+        if (array_key_exists($key, $data) && is_array($data[$key])) {
+            unset($data[$key]);
+            $this->cleanCacheTree($cleanSlug);
+            $this->resetHash();
+            $this->cached[self::CACHE_HASH_KEY] = $this->hash;
+        } else {
+            throw new \BadMethodCallException(
+                sprintf(
+                    '%s only removes existing TREE values, %s does not exist, or is SCALAR',
+                    __METHOD__,
+                    $slug
+                )
+            );
+        }
+        return $this;
+    }
+
+    /**
      * 
      * Enter description here ...
      * @param string $slug
@@ -200,7 +315,7 @@ class SlugArray
                 $e
             );
         }
-        if (array_key_exists($key, $data)) {
+        if (array_key_exists($key, $data) && !is_array($data[$key])) {
             $data[$key] = $value;
             $this->cached[$cleanSlug] = $value;
             $this->resetHash();
@@ -208,7 +323,7 @@ class SlugArray
         } else {
             throw new \BadMethodCallException(
                 sprintf(
-                    '%s only updates SCALAR values, %s does not exist, create it usign the correct method',
+                    '%s only updates SCALAR values, %s does not exist, or is a TREE',
                     __METHOD__,
                     $slug
                 )
