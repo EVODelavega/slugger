@@ -579,4 +579,41 @@ class SlugArray
         }
         return $path;
     }
+
+    /**
+     * Turn nested data structured into flat array with slugs as keys
+     *
+     * @todo: Arg validation, reverse this function (load from flat)
+     * @param array $data = null
+     * @param string $prefix = null
+     * @return array
+     */
+    public function getFlattened(array $data = null, $prefix = null)
+    {
+        if ($data === null) {
+            $data = $this->data;
+        }
+        if ($prefix === null) {
+            $prefix = $this->name . '.';
+        }
+        $flattened = array();
+        foreach ($data as $key => $value) {
+            if (!is_array($value)) {
+                $flattened[$prefix . $key] = $value;
+            } else {
+                $flattened += $this->getFlattened($value, $prefix . $key . '.');
+            }
+        }
+        return $flattened;
+    }
+
+    /**
+     * Simple getter
+     *
+     * @return array
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
 }
