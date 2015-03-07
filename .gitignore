@@ -3,6 +3,8 @@
 alertus.php
 memo.txt
 *~
+.*
+!.gitignore
 composer.phar
 vendor/*
 !.travis.yml
