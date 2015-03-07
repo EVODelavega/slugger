@@ -11,8 +11,8 @@
         }
     ],
     "autoload": {
-        "psr-0" : {
-            "Slugger" : "src"
+        "psr-4" : {
+            "Slugger\\" : "src/"
         }
     },
     "require": {
