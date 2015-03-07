@@ -218,6 +218,134 @@ class SlugArray
     }
 
     /**
+     * Update a section of the data (TREE). Values will be overwritten, TREE's will be merged
+     * as conservitively as possible
+     *
+     * @param string $slug
+     * @param array $value
+     * @return $this
+     * @throws \RuntimeException
+     * @throws \InvalidArgumentException
+     * @throws \LogicException
+     */
+    public function updateTreeValue($slug, array $value)
+    {
+        if ($this->writable === false) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Cannot update %s on %s, object is locked',
+                    $slug,
+                    $this->name
+                )
+            );
+        }
+        if (!is_array($value)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    '%s only accepts TREE values, saw %s',
+                    __METHOD__,
+                    is_object($value) ? get_class($value) : gettype($value)
+                )
+            );
+        }
+        $path = $this->expandSlug($slug);
+        $cleanSlug = implode('.', $path);
+        //get the name of the node we're updating
+        $key = array_pop($path);
+        try {
+            $data = &$this->getTreeReference(
+                $path,
+                $this->data
+            );
+            if (!array_key_exists($data[$key]) || !is_array($data[$key])) {
+                throw new \RuntimeException(
+                    sprintf(
+                    	'%s does not evaluate to a TREE',
+                        $key
+                    )
+                );
+            }
+        } catch (\RuntimeException $e) {
+            throw new \LogicException(
+                sprintf(
+                    'Invalid slug %s: %s',
+                    $slug,
+                    $e->getMessage()
+                ),
+                0,
+                $e
+            );
+        }
+        $data[$key] = $this->porcelainMerge($data[$key], $value);
+        $this->cleanCacheTree($cleanSlug);
+        $this->cached[$cleanSlug] = $data[$key];
+        $this->resetHash();
+        $this->cached[self::CACHE_HASH_KEY] = $this->hash;
+        return $this;
+    }
+
+    /**
+     * Merges 2 arrays, without changing TREE/SCALAR types
+     * Never removes values from the original, recursively
+     * TREE's and SCALAR's can be added, SCALARS can only be updated
+     * 
+     * @param array $original
+     * @param array $new
+     * @return array
+     * @throws \LogicException
+     */
+    protected function porcelainMerge(array $original, array $new)
+    {
+        foreach ($new as $key => $value) {
+            if (!array_key_exists($key, $original)) {
+                $original[$key] = $value;
+            } else if (!is_array($value)) {
+                if (is_array($original[$key])) {
+                    throw new \LogicException(
+                        sprintf(
+                            'Trying to replace TREE at %s with SCALAR (%s)',
+                            $key,
+                            gettype($value)
+                        )
+                    );
+                }
+                $original[$key] = $value;
+            } else {
+                if (!is_array($original[$key])) {
+                    throw new \LogicException(
+                        sprintf(
+                            'Trying to replace SCALAR (%s) at %s with TREE',
+                            gettype($original[$key]),
+                            $key
+                        )
+                    );
+                }
+                $original[$key] = $this->porcelainMerge($original[$key], $value);
+            }
+        }
+        return $original;
+    }
+
+    /**
+     * Clear all the cache related to a certain slug (one that is a TREE)
+     *
+     * @param string $slug
+     * @return $this
+     */
+    protected function cleanCacheTree($slug)
+    {
+        //sanitize slug
+        $slug = impode('.', $this->expandSlug($slug));
+        $keys = array_keys($this->cached);
+        foreach ($keys as $k) {
+            if (strstr($k, $slug) !== false) {
+                unset($this->cached[$k]);
+            }
+        }
+        return $this;
+    }
+
+    /**
      * Update hash property after changes to data
      * @return $this
      */
