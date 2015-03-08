@@ -400,6 +400,117 @@ class SlugArray
     }
 
     /**
+     * Add SCALAR to data
+     *
+     * @param string $slug
+     * @param mixed $value
+     * @return $this
+     * @throws \RuntimeException
+     * @throws \InvalidArgumentException
+     */
+    public function addScalarValue($slug, $value)
+    {
+        if ($this->writable === false) {
+            throw new \RuntimeException(
+                sprintf(
+                    '%s is locked',
+                    $this->name
+                )
+            );
+        }
+        if (is_array($value) || is_object($value)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    '%s can only add scalar values, saw %s',
+                    __METHOD__,
+                    is_object($value) ? get_class($value) : gettype($value)
+                )
+            );
+        }
+        //make sure current slug is empty, and all TREE's are valid:
+        $test = $this->get($slug, null);
+        if ($test === null) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Cannot add SCALAR at %s, slug already exists and resolves to %s',
+                    $slug,
+                    is_array($test) ? 'TREE' : 'SCALAR'
+                )
+            );
+        }
+        $path = $this->expandSlug($slug);
+        $cleanSlug = implode('.', $path);
+        $add = array_pop($path);
+        $ref = &$this->getTreeReference($path, $this->data);
+        $ref[$add] = $value;
+        $this->cached[$cleanSlug] = $value;
+        $this->resetHash();
+        $this->cached[self::CACHE_HASH_KEY] = $this->hash;
+        return $this;
+    }
+
+    /**
+     * Turn nested data structured into flat array with slugs as keys
+     *
+     * @todo: Arg validation, reverse this function (load from flat)
+     * @param array $data = null
+     * @param string $prefix = null
+     * @return array
+     */
+    public function getFlattened(array $data = null, $prefix = null)
+    {
+        if ($data === null) {
+            $data = $this->data;
+        }
+        if ($prefix === null) {
+            $prefix = $this->name . '.';
+        }
+        $flattened = array();
+        foreach ($data as $key => $value) {
+            if (!is_array($value)) {
+                $flattened[$prefix . $key] = $value;
+            } else {
+                $flattened += $this->getFlattened($value, $prefix . $key . '.');
+            }
+        }
+        return $flattened;
+    }
+
+    /**
+     * Load data from a previously flattened slug object
+     *
+     * @param array $data
+     * @return $this
+     * @throws \RuntimeException
+     */
+    public function loadFlattened(array $data)
+    {
+        if ($this->writable === false) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Cannot load flattened data onto %s, data is locked',
+                    $this->name
+                )
+            );
+        }
+        $this->data = array();
+        $this->hash = null;
+        $this->chached = $data;
+        $this->name = '';
+        foreach ($data as $slug => $value) {
+            $path = explode('.', trim($slug));
+            $name = array_shift($path);
+            if (!$this->name) {
+                $this->name = $name;
+            }
+            $this->data = $this->assignRecursive($this->data, $path, $value);
+        }
+        $this->resetHash();
+        $this->cached[self::CACHE_HASH_KEY] = $this->hash;
+        return $this;
+    }
+
+    /**
      * Merges 2 arrays, without changing TREE/SCALAR types
      * Never removes values from the original, recursively
      * TREE's and SCALAR's can be added, SCALARS can only be updated
@@ -578,67 +689,6 @@ class SlugArray
             );
         }
         return $path;
-    }
-
-    /**
-     * Turn nested data structured into flat array with slugs as keys
-     *
-     * @todo: Arg validation, reverse this function (load from flat)
-     * @param array $data = null
-     * @param string $prefix = null
-     * @return array
-     */
-    public function getFlattened(array $data = null, $prefix = null)
-    {
-        if ($data === null) {
-            $data = $this->data;
-        }
-        if ($prefix === null) {
-            $prefix = $this->name . '.';
-        }
-        $flattened = array();
-        foreach ($data as $key => $value) {
-            if (!is_array($value)) {
-                $flattened[$prefix . $key] = $value;
-            } else {
-                $flattened += $this->getFlattened($value, $prefix . $key . '.');
-            }
-        }
-        return $flattened;
-    }
-
-    /**
-     * Load data from a previously flattened slug object
-     *
-     * @param array $data
-     * @return $this
-     * @throws \RuntimeException
-     */
-    public function loadFlattened(array $data)
-    {
-        if ($this->writable === false) {
-            throw new \RuntimeException(
-                sprintf(
-                    'Cannot load flattened data onto %s, data is locked',
-                    $this->name
-                )
-            );
-        }
-        $this->data = array();
-        $this->hash = null;
-        $this->chached = $data;
-        $this->name = '';
-        foreach ($data as $slug => $value) {
-            $path = explode('.', trim($slug));
-            $name = array_shift($path);
-            if (!$this->name) {
-                $this->name = $name;
-            }
-            $this->data = $this->assignRecursive($this->data, $path, $value);
-        }
-        $this->resetHash();
-        $this->cached[self::CACHE_HASH_KEY] = $this->hash;
-        return $this;
     }
 
     /**
