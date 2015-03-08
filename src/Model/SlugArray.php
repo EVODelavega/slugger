@@ -608,6 +608,63 @@ class SlugArray
     }
 
     /**
+     * Load data from a previously flattened slug object
+     *
+     * @param array $data
+     * @return $this
+     * @throws \RuntimeException
+     */
+    public function loadFlattened(array $data)
+    {
+        if ($this->writable === false) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Cannot load flattened data onto %s, data is locked',
+                    $this->name
+                )
+            );
+        }
+        $this->data = array();
+        $this->hash = null;
+        $this->chached = $data;
+        $this->name = '';
+        foreach ($data as $slug => $value) {
+            $path = explode('.', trim($slug));
+            $name = array_shift($path);
+            if (!$this->name) {
+                $this->name = $name;
+            }
+            $this->data = $this->assignRecursive($this->data, $path, $value);
+        }
+        $this->resetHash();
+        $this->cached[self::CACHE_HASH_KEY] = $this->hash;
+        return $this;
+    }
+
+    /**
+     * Recursively assign values to target array
+     *
+     * @param array $target
+     * @param array $path
+     * @param mixed $value
+     */
+    protected function assignRecursive(array $target, array $path, $value)
+    {
+        if ($path) {
+            $key = array_shift($key);
+            //default to empty array, scalar will overwrite this if required
+            if (!isset($target[$key])) {
+                $target[$key] = array();
+            }
+            $target[$key] = $this->assignRecursive($target[$key], $path, $value);
+            $returnVal = $target;
+        } else {
+            $returnVal = $value;
+        }
+        return $returnVal;
+    }
+
+    /**
      * Simple getter
      *
      * @return array
