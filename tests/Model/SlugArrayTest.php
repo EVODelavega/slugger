@@ -1,5 +1,6 @@
 <?php
 use Slugger\Model\SlugArray;
+use Slugger\Model\Slugger\Model;
 
 class SlugArrayTest extends PHPUnit_Framework_TestCase
 {
@@ -37,6 +38,23 @@ class SlugArrayTest extends PHPUnit_Framework_TestCase
     }
 
     /**
+     * @dataProvider flattenProvider
+     * @param array $data
+     * @param string $expectedName
+     */
+    public function testFlattenMethods(array $data, $expectedName)
+    {
+        $slugger = new SlugArray();
+        $slugger->loadFlattened($data);
+        foreach ($data as $slug => $value)
+        {
+            $this->assertEquals($value, $slugger->get($slug, $value === null ? false : null));
+        }
+        $this->assertEquals($data, $slugger->getFlattened());
+        $this->assertEquals($expectedName, $slugger->getName());
+    }
+
+    /**
      * @return array
      */
     public function constructorProvider()
@@ -66,6 +84,24 @@ class SlugArrayTest extends PHPUnit_Framework_TestCase
                 'data'	    => array('keyName' => $data),
                 'writable'	=> true,
                 'badName'	=> 'name.with.separators',
+            )
+        );
+    }
+
+    /**
+     * @return array
+     */
+    public function flattenProvider()
+    {
+        $data = array(
+            'test.foo.scalar'       => 'val1',
+            'test.bar.tree.first'   => 'first tree value',
+            'test.bar.tree.second'  => 'second tree value',
+        );
+        return array(
+            array(
+                $data,
+                'test',
             )
         );
     }

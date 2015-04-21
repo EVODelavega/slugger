@@ -701,7 +701,7 @@ class SlugArray
     protected function assignRecursive(array $target, array $path, $value)
     {
         if ($path) {
-            $key = array_shift($key);
+            $key = array_shift($path);
             //default to empty array, scalar will overwrite this if required
             if (!isset($target[$key])) {
                 $target[$key] = array();
